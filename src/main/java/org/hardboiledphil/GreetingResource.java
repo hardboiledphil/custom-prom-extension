@@ -35,17 +35,6 @@ public class GreetingResource {
     @Produces(MediaType.TEXT_PLAIN)
     public Uni<String> getPrometheusMetrics() {
 
-        // this.environment = environment; // could be used to metric by env
-        // this.eventDate = Date.from(eventTimestamp);
-        // this.eventTimestamp = eventTimestamp;
-        // this.eventName = eventName; // status
-        // this.eventReference = eventReference;
-        // this.transactionType = transactionType; // type
-        // this.transactionReference = transactionReference;
-        // this.ilMessageId = ilMessageId;
-        // this.chainPrefix = chainPrefix; // chain prefix
-        // this.chainNumber = chainNumber; // chain number
-        // this.messageVersion = messageVersion;
         log.info("What thread is this running on?");
 
         //
@@ -77,14 +66,6 @@ public class GreetingResource {
                         .append(combinationCount)
                         .append("\n"));
 
-//                .append("{environment=\"{")
-//                .append("}\",status=\"{")
-//                .append("}\",type=\"{")
-//                .append("}\",chainprefix=\"{")
-//                .append("}\",chainnumber=\"{")
-//                .append("}\",} ")
-//                .append(count);
-//        val sc = new StringBuilder("got this far");
         return Uni.createFrom().item(sb.toString());
     }
 
