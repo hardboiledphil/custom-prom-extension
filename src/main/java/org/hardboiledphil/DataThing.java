@@ -14,5 +14,7 @@ public class DataThing {
     private String bench;
     private String chain;
     private int    chainNumber;
+    private Status status;
 
 }
+

@@ -13,12 +13,14 @@ import jakarta.ws.rs.core.Response;
 import lombok.extern.slf4j.Slf4j;
 import lombok.val;
 
-import java.util.ArrayList;
 import java.util.Optional;
 import java.util.stream.Collectors;
 
 /**
  * curl -X POST -H "Content-Type: application/json" -d '{"bench":"bench2","chain":"chain2","chainNumber":2}' http://localhost:8080/hello/data/add
+ *
+ * To build the container image
+ * ./mvnw install -Dquarkus.container-image.build=true -Dmaven.test.skip=false
  */
 @Slf4j
 @Path("/hello")
@@ -35,37 +37,62 @@ public class GreetingResource {
     @Produces(MediaType.TEXT_PLAIN)
     public Uni<String> getPrometheusMetrics() {
 
-        log.info("What thread is this running on?");
+        log.debug("What thread is this running on?");
 
         //
         val sb = new StringBuilder();
         if (dataWrapper.getDataThingMap().isEmpty()) {
             return Uni.createFrom().item(() -> "");
-        };
+        }
 
-        sb.append("HELP    \n")
-                .append("TYPE    \n");
-
-        val counts = dataWrapper.getDataThingMap()
+        val inWaiting = dataWrapper.getDataThingMap()
                 .stream()
-                .map(dataThing -> dataThing.getBench()
-                        + ","
+                .filter(dataThing -> dataThing.getStatus().equals(Status.WAITING))
+                .map(dataThing -> "bench=\""
+                        + dataThing.getBench()
+                        + "\", chain=\""
                         + dataThing.getChain()
-                        + ","
+                        + "\", chainNumber=\""
                         + dataThing.getChainNumber()
-                        + ",")
+                        + "\",")
+                .collect(Collectors.groupingBy(
+                        dataThingString -> dataThingString,
+                        Collectors.counting()));
+        if (!inWaiting.isEmpty()) {
+            sb.append("# HELP " + WAITING_NAME + " The number of transactions waiting\n")
+                    .append("# TYPE " + WAITING_NAME + " gauge\n");
+            inWaiting.forEach((benchCombination, combinationCount) -> sb.append(WAITING_NAME)
+                    .append("{")
+                    .append(benchCombination)
+                    .append("} ")
+                    .append(combinationCount)
+                    .append("\n"));
+        }
+
+        val inProcessing = dataWrapper.getDataThingMap()
+                .stream()
+                .filter(dataThing -> dataThing.getStatus().equals(Status.PROCESSING))
+                .map(dataThing -> "bench=\""
+                        + dataThing.getBench()
+                        + "\", chain=\""
+                        + dataThing.getChain()
+                        + "\", chainNumber=\""
+                        + dataThing.getChainNumber()
+                        + "\",")
                 .collect(Collectors.groupingBy(
                         dataThingString -> dataThingString,
                         Collectors.counting()));
 
-        counts.forEach((benchCombination, combinationCount) ->
-                sb.append(WAITING_NAME)
-                        .append("{")
-                        .append(benchCombination)
-                        .append("} ")
-                        .append(combinationCount)
-                        .append("\n"));
-
+        if (!inProcessing.isEmpty()) {
+            sb.append("# HELP " + PROCESSING_NAME + " The number of transactions processing\n")
+                    .append("# TYPE " + PROCESSING_NAME + " gauge\n");
+            inProcessing.forEach((benchCombination, combinationCount) -> sb.append(PROCESSING_NAME)
+                    .append("{")
+                    .append(benchCombination)
+                    .append("} ")
+                    .append(combinationCount)
+                    .append("\n"));
+        }
         return Uni.createFrom().item(sb.toString());
     }
 
@@ -103,6 +130,5 @@ public class GreetingResource {
     public Uni<String> hello() {
         return Uni.createFrom().item("Hello from RESTEasy Reactive");
     }
-
 
 }
